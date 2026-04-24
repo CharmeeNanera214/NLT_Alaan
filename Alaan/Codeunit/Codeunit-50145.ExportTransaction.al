@@ -1,5 +1,7 @@
 codeunit 50145 "Export Transactions"
 {
+    Permissions = tabledata "G/L Entry" = RIMD,
+    tabledata "Bank Account Ledger Entry" = RIMD;
     /* UPDTAE LINE STATUS
         When Gen journal Lines are posted, it updates lines status on Transaction and Bank Statement buffer as posted
             1. Lines Posted from Payment Journal --> Updated on transaction lines
@@ -12,6 +14,9 @@ codeunit 50145 "Export Transactions"
         TxnLineID: Guid;
         TransactionLine: Record "Transaction Line - Alaan";
         BankStatementLineBuffer: Record "Bank Statement Lines Buffer";
+        Transactions: Record "Transactions - Alaan";
+        GLEntry: Record "G/L Entry";
+        bankLedger: Record "Bank Account Ledger Entry";
     begin
         //Update transaction lines
         if not CommitIsSuppressed and (not IsNullGuid(GenJournalLine.TxnId)) and (not IsNullGuid(GenJournalLine.TxnLineId)) then begin
@@ -21,9 +26,29 @@ codeunit 50145 "Export Transactions"
             Clear(TransactionLine);
             if TransactionLine.Get(TxnHeaderID, TxnLineID) then begin
                 TransactionLine.Status := TransactionLine.Status::Posted;
+                TransactionLine.JournalLineDocNo := PostingGenJournalLine."Document No.";
                 TransactionLine.Modify();
             end;
         end;
+
+        //code added on 10-4-26
+        if Transactions.Get(TxnHeaderID) then begin
+            Transactions.JournalDocNo := PostingGenJournalLine."Document No.";
+            Transactions.Modify();
+        end;
+        GLEntry.SetFilter("Document No.", PostingGenJournalLine."Document No.");
+        if GLEntry.FindSet() then
+            repeat
+                GLEntry.Memo := PostingGenJournalLine.Memo;
+                GLEntry.Modify();
+            until GLEntry.Next() = 0;
+        bankLedger.SetFilter("Document No.", PostingGenJournalLine."Document No.");
+        if bankLedger.FindSet() then
+            repeat
+                bankLedger.Memo := PostingGenJournalLine.Memo;
+                bankLedger.Modify();
+            until bankLedger.Next() = 0;
+
         //****************************Mark as uncomment for bank import statement
         //Update Bank statement buffer lines
         if not CommitIsSuppressed and (not IsNullGuid(GenJournalLine.TxnId)) then begin
@@ -126,8 +151,13 @@ codeunit 50145 "Export Transactions"
     end;
 
     local procedure InitSyncLog()
+    var
+        TransactionLog_: Record "Transaction - Alaan Logs";
     begin
         TransactionLog.Init();
+        TransactionLog_.Reset();
+        if TransactionLog_.FindLast() then
+            TransactionLog.EntryNo := TransactionLog_.EntryNo + 1;
         TransactionLog."Sync Date & Time" := CurrentDateTime;
         TransactionLog.SyncType := TransactionLog.SyncType::"To Alaan";
         TransactionLog.ActionType := TransactionLog.ActionType::Export;
@@ -143,15 +173,17 @@ codeunit 50145 "Export Transactions"
         TransactionLog.Modify();
     end;
 
+    //Code added on 24-4-26 to correct the API body
     local procedure CreateURLBody(TxnIDTXT: Text): Text
     var
-        JObject: JsonObject;
-        JArray: JsonArray;
+        JObject, JsonObject_ : JsonObject;
+        JArray, JArray_ : JsonArray;
         JToken: JsonToken;
         BodyTXT: Text;
         ErrorMSG: Text;
         IsSuccess: Boolean;
     begin
+
         Clear(ExportStatus);
         IsSuccess := (Transaction."Error Message" = '') and (Transaction.SyncStatus = Transaction.SyncStatus::Posted);
 
@@ -160,6 +192,10 @@ codeunit 50145 "Export Transactions"
             JArray.Add(JObject);
             Clear(JObject);
             JObject.Add('success_sync', JArray);
+            JsonObject_.Add('id', TxnIDTXT);
+            JsonObject_.Add('error_message', 'Error');
+            JArray_.Add(JsonObject_);
+            JObject.Add('failure_sync', JArray_);
             JObject.Add('sync_type', 'Transaction');
             JObject.WriteTo(BodyTXT);
             ExportStatus := ExportStatus::EXPORTED;

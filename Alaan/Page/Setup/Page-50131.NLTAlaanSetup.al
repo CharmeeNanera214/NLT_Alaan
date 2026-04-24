@@ -92,6 +92,12 @@ page 50131 "NLT - Alaan Setup"
                 //     Caption = 'Cashback Account';
                 //     ToolTip = 'Cashback account for bacalance account of Cashback line of transaction';
                 // }
+                field("Alaan Trans. Fees Account"; Rec."Alaan Trans. Fees Account")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Alaan Trans. Fees Account';
+                    ToolTip = 'Account for managing Alaan Transaction fees';
+                }
             }
 
             group("Transaction Type")

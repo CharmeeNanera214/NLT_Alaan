@@ -123,6 +123,12 @@ table 50131 "NLT - Alaan Setup"
             DataClassification = ToBeClassified;
             TableRelation = "G/L Account"."No." where("Account Type" = const("G/L Account Type"::Posting), Blocked = const(false));
         }
+        field(17; "Alaan Trans. Fees Account"; Code[20])
+        {
+            Caption = 'Alaan Trans. Fees Account';
+            DataClassification = ToBeClassified;
+            TableRelation = "G/L Account"."No." where("Account Type" = const("G/L Account Type"::Posting), Blocked = const(false));
+        }
     }
 
     keys

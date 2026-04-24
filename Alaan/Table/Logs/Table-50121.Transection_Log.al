@@ -185,7 +185,7 @@ table 50121 "Transaction - Alaan Logs"
         }
         field(33; "Spender Comments"; Text[1048])
         {
-            Caption = 'Spender Comments';
+            Caption = 'Memo Comments';
             DataClassification = ToBeClassified;
         }
         field(34; "Admin Comments"; Text[1048])

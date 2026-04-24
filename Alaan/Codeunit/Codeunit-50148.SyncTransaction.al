@@ -49,7 +49,11 @@ codeunit 50148 "Sync Transactions Test"
             if (TransactionLine.Status <> TransactionLine.Status::Posted) then begin
                 GetAccountNoforLine();
                 Clear(Amount);
-                Amount := Transaction."Billing Amount";
+
+                //Code added on 13-4-26 to replace the billing amount with amount exculdding fees
+                // Amount := Transaction."Billing Amount";
+                Amount := Transaction."Transaction Amount";
+
                 GetNewDocNo := true;
                 SyncLine();
             end;
@@ -107,6 +111,7 @@ codeunit 50148 "Sync Transactions Test"
         GenBatch: Record "Gen. Journal Batch";
         PMTDocumentNo: Code[20];
         PMTLineNo: Integer;
+        feeLine: Record "Gen. Journal Line";
     begin
         JourLineDocNo := Transaction.JournalDocNo;
         InitNewTXNLogRecord(TxnLine, AccountType);
@@ -160,6 +165,29 @@ codeunit 50148 "Sync Transactions Test"
             if GenJourLine.Modify(true) then begin
                 TxnJurLogs.DimensionID := DimensionSetID;
                 TxnJurLogs.Modify();
+            end;
+        end;
+
+        //Code added on 13-4-26 for adding Transaction fee line on payment journal
+        if Transaction."Fee Amount" <> 0 then begin
+            Clear(feeLine);
+            feeLine.SetFilter("Journal Template Name", GenTempName);
+            feeLine.SetFilter("Journal Batch Name", GenBatchName);
+            feeLine.SetFilter(TxnId, TxnLine."Header ID");
+            feeLine.SetFilter(TxnLineId, TxnLine."Line ID");
+            feeLine.SetFilter("Document No.", TxnLine.JournalLineDocNo);
+            feeLine.SetRange("Account No.", NLTSetup."Alaan Trans. Fees Account");
+            if not feeLine.FindFirst() then begin
+                // Clear(GenJourLine);
+                // GenJourLine.SetFilter("Journal Template Name", GenTempName);
+                // GenJourLine.SetFilter("Journal Batch Name", GenBatchName);
+                // GenJourLine.SetFilter(TxnId, TxnLine."Header ID");
+                // GenJourLine.SetFilter(TxnLineId, TxnLine."Line ID");
+                // GenJourLine.SetFilter("Document No.", TxnLine.JournalLineDocNo);
+                // GenJourLine.SetRange("Line No.", TxnLine.JournalLineLineNo);
+                // if GenJourLine.FindFirst() then
+                if not CreateAlaanTransFeeLine(Txndate, JourLineDocNo, AccountNo, BankAccount, Amount, TxnLine."Header ID", TxnLine."Line ID", TxnLine) then
+                    Error('Error while creating new line on Payment Journal');
             end;
         end;
     end;
@@ -237,6 +265,76 @@ codeunit 50148 "Sync Transactions Test"
             exit(false);
     end;
 
+    local procedure CreateAlaanTransFeeLine(Txndate: Date; DocumentNo: Code[20]; AccountNo: Code[20]; BalAccNo: Code[20]; Amount: Decimal; TxnID: Guid; TxnLineID: Guid; TLine: Record "Transaction Line - Alaan"): Boolean
+    var
+        PAYJourLine: Record "Gen. Journal Line";
+        NewLineNo: Integer;
+    begin
+        Clear(PAYJourLine);
+        PAYJourLine.SetFilter("Journal Batch Name", GenBatchName);
+        PAYJourLine.SetFilter("Journal Template Name", GenTempName);
+        if PAYJourLine.FindLast() then
+            NewLineNo := PAYJourLine."Line No." + 10000
+        else
+            NewLineNo := 10000;
+
+        GenJourLine.Init();
+        GenJourLine.Validate("Journal Template Name", GenTempName);
+        GenJourLine.Validate("Journal Batch Name", GenBatchName);
+        GenJourLine.Validate("Line No.", NewLineNo);
+        GenJourLine.Validate("Posting Date", Txndate);
+        GenJourLine.Validate("Document Type", GenJourLine."Document Type"::Payment);
+        GenJourLine.Validate("Document No.", DocumentNo);
+        // case AccountType of
+        //     AccountType::Vendor:
+        //         GenJourLine.Validate("Account Type", GenJourLine."Account Type"::Vendor);
+        //     AccountType::"GL Account":
+        //         GenJourLine.Validate("Account Type", GenJourLine."Account Type"::"G/L Account");
+        //     AccountType::"Bank Account":
+        //         GenJourLine.Validate("Account Type", GenJourLine."Account Type"::"Bank Account");
+        // end;
+        GenJourLine.Validate("Account Type", GenJourLine."Account Type"::"G/L Account");
+        GenJourLine.Validate(TxnId, TxnID);
+        GenJourLine.Validate(TxnLineId, TxnLineID);
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        GenJourLine.Validate("Account No.", NLTSetup."Alaan Trans. Fees Account");
+
+        GenJourLine.Validate("Debit Amount", Transaction."Fee Amount");
+
+        GenJourLine.Validate(Description, Transaction."Spender Comments");
+        GenJourLine.Validate("External Document No.", Transaction."Reference Number");
+        GenJourLine.Validate("Payment Method Code", PaymentMethod);
+
+        // Added on 10-4-26
+        GenJourLine.Validate(Memo, Transaction."Spender Comments");
+
+        if TLine.LineType = TLine.LineType::"Cashback Line" then begin
+            GenJourLine.Validate("Bal. Account Type", GenJourLine."Bal. Account Type"::"G/L Account");
+            GenJourLine.Validate("Bal. Account No.", NLTSetup."Cashback Account");
+        end
+        else begin
+            if Transaction."Payment Journal Terms" in [Transaction."Payment Journal Terms"::"Single GL", Transaction."Payment Journal Terms"::"Single Vendor"] then begin
+                GenJourLine.Validate("Bal. Account Type", GenJourLine."Bal. Account Type"::"Bank Account");
+                GenJourLine.Validate("Bal. Account No.", BankAccount);
+            end;
+        end;
+
+        if AccountType = AccountType::"GL Account" then begin
+            GenJourLine.Validate("Gen. Posting Type", GenJourLine."Gen. Posting Type"::Purchase);
+        end;
+        if Transaction.IsForeignVendor then
+            GenJourLine.Validate("Amount (LCY)", Transaction."Fee Amount");
+
+
+        ////////////////////////////////////////////////////////    
+
+        if GenJourLine.Insert(true) then
+            exit(true)
+        else
+            exit(false);
+    end;
+
     local procedure UpdateGenLine(TLine: Record "Transaction Line - Alaan"): Boolean
     begin
         GenJourLine.Validate("Account No.", AccountNo);
@@ -248,6 +346,10 @@ codeunit 50148 "Sync Transactions Test"
         GenJourLine.Validate(Description, Transaction."Spender Comments");
         GenJourLine.Validate("External Document No.", Transaction."Reference Number");
         GenJourLine.Validate("Payment Method Code", PaymentMethod);
+
+        // Added on 10-4-26
+        GenJourLine.Validate(Memo, Transaction."Spender Comments");
+
 
         if (Transaction."Transaction Type" = Transaction."Transaction Type"::Expense) and (TLine.LineType = TLine.LineType::"Actual Line") then begin
             // if (TLine.LineType = TLine.LineType::"Actual Line") then begin
@@ -356,7 +458,7 @@ codeunit 50148 "Sync Transactions Test"
         NLTSetup.TestField(AlaanExpenseJurBatch);
         NLTSetup.TestField("Employee Bank");
         NLTSetup.TestField("Payment Method");
-        NLTSetup.TestField("Cashback Account");
+        // NLTSetup.TestField("Cashback Account");
 
         PaymentMethod := NLTSetup."Payment Method";
         BankAccount := NLTSetup."Employee Bank";

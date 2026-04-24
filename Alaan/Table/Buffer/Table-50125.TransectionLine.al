@@ -196,7 +196,7 @@ table 50125 "Transaction Line - Alaan"
         // Comments
         field(29; "Spender Comments"; Text[250])
         {
-            Caption = 'Spender Comments';
+            Caption = 'Memo Comments';
             DataClassification = CustomerContent;
         }
 

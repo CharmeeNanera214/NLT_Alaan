@@ -169,7 +169,7 @@ table 50122 "Transaction Line - Alaan Logs"
         // Comments
         field(29; "Spender Comments"; Text[250])
         {
-            Caption = 'Spender Comments';
+            Caption = 'Memo Comments';
             DataClassification = CustomerContent;
         }
 

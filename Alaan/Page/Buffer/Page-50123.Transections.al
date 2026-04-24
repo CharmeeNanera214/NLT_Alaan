@@ -248,8 +248,16 @@ page 50123 "Transactions - Alaan"
                 trigger OnAction()
                 var
                     ExportTxn: Codeunit "Export Transactions";
+                    selectedRec: Record "Transactions - Alaan";
                 begin
-                    ExportTxn.ExportTransaction(Rec.TransactionId, false);
+                    //Code added on 10-4-26
+                    //Code is added for multiple selection
+                    CurrPage.SetSelectionFilter(selectedRec);
+                    if SelectedRec.FindSet() then begin
+                        repeat
+                            ExportTxn.ExportTransaction(SelectedRec.TransactionId, false);
+                        until SelectedRec.Next() = 0;
+                    end;
                 end;
             }
         }

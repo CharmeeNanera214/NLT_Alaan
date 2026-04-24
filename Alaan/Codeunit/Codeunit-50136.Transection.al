@@ -106,6 +106,10 @@ codeunit 50136 "Transaction MGT"
         if TransactionObj.Get('billingCurrency', JToken) then
             if not JToken.AsValue().IsNull then
                 Evaluate(TransRec."Billing Currency", JToken.AsValue().AsText());
+        //Code Added on 10-4-26 for memo field
+        if TransactionObj.Get('spenderComments', JToken) then
+            if not JToken.AsValue().IsNull then
+                Evaluate(TransRec."Spender Comments", JToken.AsValue().AsText());
 
         if TransactionObj.Get('merchantId', JToken) then
             if not JToken.AsValue().IsNull then

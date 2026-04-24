@@ -40,6 +40,13 @@ page 50125 "Transaction Card - Alaan"
                     ToolTip = 'Specifies the billing amount of the transaction.';
                     Importance = Promoted;
                 }
+                field("Fee Amount"; Rec."Fee Amount")
+                {
+                    ApplicationArea = All;
+                    Caption = 'Alaan Processing Fee';
+                    ToolTip = 'Specifies the Alaan Processing Fee amount of the transaction.';
+                    Importance = Promoted;
+                }
                 field("VAT Amount"; Rec."VAT Amount")
                 {
                     ApplicationArea = All;
@@ -239,7 +246,7 @@ page 50125 "Transaction Card - Alaan"
                 field("Spender Comments"; Rec."Spender Comments")
                 {
                     ApplicationArea = All;
-                    Caption = 'Spender Comments';
+                    Caption = 'Memo Comment';
                     ToolTip = 'Specifies any comments added by the spender.';
                 }
             }

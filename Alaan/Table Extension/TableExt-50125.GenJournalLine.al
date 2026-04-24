@@ -12,6 +12,11 @@ tableextension 50125 "Gen Jur Line EXT" extends "Gen. Journal Line"
             DataClassification = ToBeClassified;
             Caption = 'Transaction Id';
         }
+        field(50102; "Memo"; Text[1028])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'memo';
+        }
     }
     //****************************Mark as uncomment for bank import statement
     trigger OnAfterModify()

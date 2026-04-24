@@ -45,7 +45,7 @@ page 50135 "Transaction Line - Alaan Logs"
                 }
                 field("Spender Comments"; Rec."Spender Comments")
                 {
-
+                    Caption = 'Memo Comment';
                 }
                 field("Error Message"; Rec."Error Message")
                 {

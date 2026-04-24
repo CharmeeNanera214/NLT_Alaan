@@ -69,6 +69,8 @@ codeunit 50131 "Alaan API MGT"
         It contains response data for API which has been Called by this procedure. 
         Procedure Call Post or Patch API of Alaan to Create or Update data.
     */
+
+    //Code added on 24-4-26 to correct the error message
     procedure CallPostOrPatchAPI(CompId: Guid; URL: Text; BodyText: Text; RequestType: Code[5]) Response: JsonObject
     var
         ClientID: Text[100];
@@ -110,7 +112,7 @@ codeunit 50131 "Alaan API MGT"
                 exit(Response);
             end
             else
-                Error(StrSubstNo('Call Failed : %1', HttpResponseMessage.HttpStatusCode));
+                Error('Call Failed: %1\n%2', HttpResponseMessage.HttpStatusCode, ResponseData);
         end
         else
             Error('Post request failed');
