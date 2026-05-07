@@ -185,7 +185,7 @@ codeunit 50136 "Transaction MGT"
 
         if TransactionObj.Get('referenceNumber', JToken) then
             if not JToken.AsValue().IsNull then
-                TransRec."Reference Number" := JToken.AsValue().AsText();
+                TransRec."Reference Number" := JToken.AsValue().AsText().Substring(1,35);
 
         if TransactionObj.Get('feeAmount', JToken) then
             if not JToken.AsValue().IsNull then
