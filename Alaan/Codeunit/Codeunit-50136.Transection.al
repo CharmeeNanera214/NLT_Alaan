@@ -109,7 +109,7 @@ codeunit 50136 "Transaction MGT"
         //Code Added on 10-4-26 for memo field
         if TransactionObj.Get('spenderComments', JToken) then
             if not JToken.AsValue().IsNull then
-                Evaluate(TransRec."Spender Comments", JToken.AsValue().AsText());
+                Evaluate(TransRec."Spender Comments", JToken.AsValue().AsText().Substring(1, 100));
 
         if TransactionObj.Get('merchantId', JToken) then
             if not JToken.AsValue().IsNull then
@@ -185,7 +185,7 @@ codeunit 50136 "Transaction MGT"
 
         if TransactionObj.Get('referenceNumber', JToken) then
             if not JToken.AsValue().IsNull then
-                TransRec."Reference Number" := JToken.AsValue().AsText().Substring(1,35);
+                TransRec."Reference Number" := JToken.AsValue().AsText().Substring(1, 35);
 
         if TransactionObj.Get('feeAmount', JToken) then
             if not JToken.AsValue().IsNull then
@@ -403,7 +403,7 @@ codeunit 50136 "Transaction MGT"
         if TXNLineObj.Get('vatAmount', JsonToken) then
             TransactionLine."VAT Amount" := JsonToken.AsValue().AsDecimal();
         if TXNLineObj.Get('spenderComments', JsonToken) then
-            TransactionLine."Spender Comments" := JsonToken.AsValue().IsNull ? '' : JsonToken.AsValue().AsText();
+            TransactionLine."Spender Comments" := JsonToken.AsValue().IsNull ? '' : JsonToken.AsValue().AsText().Substring(1, 100);
 
         //expense category
         Clear(JsonObject);
